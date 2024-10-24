@@ -59,3 +59,62 @@ Resources:
     Properties:
       RouteTableId: !Ref FridayHITTRouteTable
       SubnetId: !Ref FridayHITTPrivateSubnet
+  PublicSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allows the Private network to communicate to the Public network
+      GroupName: PublicSecurityGroup
+      VpcId: !Ref FridayHITTVPC
+      SecurityGroupIngress:
+        - CidrIp: 10.0.4.0/23
+          IpProtocol: tcp
+          Description: CIDR Block for the Private Subnet
+          FromPort: 0
+          ToPort: 0
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: '-1'
+          Description: Allow traffic to all external IPv4 and IPv6 addresses
+          FromPort: -1
+          ToPort: -1
+      Tags:
+        - Value: public
+          Key: public/private
+        - Value: PublicSecurityGroup
+          Key: name
+  JumpboxSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allows the Jumpbox to connect to the private instances
+      GroupName: JumpboxSecurityGroup
+      VpcId: !Ref FridayHITTVPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          Description: Allow SSH from anywhere to the jumpbox - not recommended but doing
+            it for the sake of the lab
+          FromPort: 22
+          ToPort: 22
+  PrivateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allows the private subnet to communicate to the public, and
+        gives permission for the jumpbox to connect to the private network
+      GroupName: PrivateSecurityGroup
+      VpcId: !Ref FridayHITTVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          SourceSecurityGroupId: !GetAtt JumpboxSecurityGroup.GroupId
+          ToPort: 22
+      SecurityGroupEgress:
+        - CidrIp: 10.0.0.0/22
+          IpProtocol: tcp
+          Description: CIDR block for Public subnet
+          FromPort: 0
+          ToPort: 0
+      Tags:
+        - Value: PrivateSecurityGroup
+          Key: name
+        - Value: private
+          Key: public/private
