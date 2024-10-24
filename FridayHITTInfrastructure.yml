@@ -27,3 +27,35 @@ Resources:
     Properties:
       VpcId: !Ref FridayHITTVPC
       InternetGatewayId: !Ref InternetGateway
+  FridayHITTPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FridayHITTVPC
+      AvailabilityZoneId: use1-az4
+      CidrBlock: 10.0.0.0/22
+      Tags:
+        - Value: public
+          Key: public/private
+        - Value: FridayHITTPublicSubnet
+          Key: Name
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref FridayHITTRouteTable
+      SubnetId: !Ref FridayHITTPublicSubnet
+  FridayHITTPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FridayHITTVPC
+      AvailabilityZoneId: use1-az4
+      CidrBlock: 10.0.4.0/23
+      Tags:
+        - Value: FridayHITTPrivateSubnet
+          Key: Name
+        - Value: private
+          Key: public/private
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref FridayHITTRouteTable
+      SubnetId: !Ref FridayHITTPrivateSubnet
