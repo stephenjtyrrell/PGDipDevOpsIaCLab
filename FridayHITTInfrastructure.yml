@@ -2,3 +2,28 @@ Description: A VPC for a company that contains 2 subnets, 1 public, 1 private, a
 
 # Resources section
 Resources:
+  FridayHITTVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      EnableDnsHostnames: false
+      Tags:
+        - Value: FridayHITTVPC
+          Key: Name
+  FridayHITTRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref FridayHITTVPC
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Value: InternetGateway
+          Key: Name
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref FridayHITTVPC
+      InternetGatewayId: !Ref InternetGateway
