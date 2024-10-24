@@ -1,0 +1,4 @@
+Description: A VPC for a company that contains 2 subnets, 1 public, 1 private, and multiple EC2 instances
+
+# Resources section
+Resources:
