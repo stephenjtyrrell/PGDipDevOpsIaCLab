@@ -118,3 +118,54 @@ Resources:
           Key: name
         - Value: private
           Key: public/private
+    JumpboxKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: JumboxKeyPair
+  PrivateKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: PrivateKeyPair
+  PublicKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: PublicKeyPair
+  JumpboxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      SubnetId: !Ref FridayHITTPublicSubnet
+      SecurityGroupIds:
+        - !GetAtt JumpboxSecurityGroup.GroupId
+      KeyName: !Ref JumpboxKeyPair
+      ImageId: ami-06b21ccaeff8cd686
+      InstanceType: t2.micro
+      Tags:
+        - Value: JumpboxInstance
+          Key: Name
+  PrivateInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      SubnetId: !Ref FridayHITTPrivateSubnet
+      SecurityGroupIds:
+        - !GetAtt PrivateSecurityGroup.GroupId
+      KeyName: !Ref PrivateKeyPairs
+      ImageId: ami-06b21ccaeff8cd686
+      InstanceType: t2.micro
+      Tags:
+        - Value: PrivateInstance
+          Key: Name
+  PublicInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      SubnetId: !Ref FridayHITTPublicSubnet
+      SecurityGroupIds:
+        - !GetAtt PublicSecurityGroup.GroupId
+      KeyName: !Ref PublicKeyPair
+      ImageId: ami-06b21ccaeff8cd686
+      InstanceType: t2.micro
+      Tags:
+        - Value: PublicInstance
+          Key: Name
