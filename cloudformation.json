@@ -1,0 +1,313 @@
+{
+    "Description": "A VPC for a company that contains 2 subnets, 1 public, 1 private, and multiple EC2 instances",
+    "Resources": {
+        "FridayHITTVPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsSupport": true,
+                "InstanceTenancy": "default",
+                "EnableDnsHostnames": false,
+                "Tags": [
+                    {
+                        "Value": "FridayHITTVPC",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        },
+        "FridayHITTRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                }
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Value": "InternetGateway",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        },
+        "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "InternetGateway"
+                }
+            }
+        },
+        "FridayHITTPublicSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "AvailabilityZoneId": "use1-az4",
+                "CidrBlock": "10.0.0.0/22",
+                "Tags": [
+                    {
+                        "Value": "public",
+                        "Key": "public/private"
+                    },
+                    {
+                        "Value": "FridayHITTPublicSubnet",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        },
+        "PublicSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "FridayHITTRouteTable"
+                },
+                "SubnetId": {
+                    "Ref": "FridayHITTPublicSubnet"
+                }
+            }
+        },
+        "FridayHITTPrivateSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "AvailabilityZoneId": "use1-az4",
+                "CidrBlock": "10.0.4.0/23",
+                "Tags": [
+                    {
+                        "Value": "FridayHITTPrivateSubnet",
+                        "Key": "Name"
+                    },
+                    {
+                        "Value": "private",
+                        "Key": "public/private"
+                    }
+                ]
+            }
+        },
+        "PrivateSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "FridayHITTRouteTable"
+                },
+                "SubnetId": {
+                    "Ref": "FridayHITTPrivateSubnet"
+                }
+            }
+        },
+        "PublicSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows the Private network to communicate to the Public network",
+                "GroupName": "PublicSecurityGroup",
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "10.0.4.0/23",
+                        "IpProtocol": "tcp",
+                        "Description": "CIDR Block for the Private Subnet",
+                        "FromPort": 0,
+                        "ToPort": 0
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "IpProtocol": "-1",
+                        "Description": "Allow traffic to all external IPv4 and IPv6 addresses",
+                        "FromPort": -1,
+                        "ToPort": -1
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Value": "public",
+                        "Key": "public/private"
+                    },
+                    {
+                        "Value": "PublicSecurityGroup",
+                        "Key": "name"
+                    }
+                ]
+            }
+        },
+        "JumpboxSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows the Jumpbox to connect to the private instances",
+                "GroupName": "JumpboxSecurityGroup",
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "IpProtocol": "tcp",
+                        "Description": "Allow SSH from anywhere to the jumpbox - not recommended but doing it for the sake of the lab",
+                        "FromPort": 22,
+                        "ToPort": 22
+                    }
+                ]
+            }
+        },
+        "PrivateSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows the private subnet to communicate to the public, and gives permission for the jumpbox to connect to the private network",
+                "GroupName": "PrivateSecurityGroup",
+                "VpcId": {
+                    "Ref": "FridayHITTVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 22,
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "JumpboxSecurityGroup",
+                                "GroupId"
+                            ]
+                        },
+                        "ToPort": 22
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "CidrIp": "10.0.0.0/22",
+                        "IpProtocol": "tcp",
+                        "Description": "CIDR block for Public subnet",
+                        "FromPort": 0,
+                        "ToPort": 0
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Value": "PrivateSecurityGroup",
+                        "Key": "name"
+                    },
+                    {
+                        "Value": "private",
+                        "Key": "public/private"
+                    }
+                ]
+            }
+        },
+        "JumpboxKeyPair": {
+            "Type": "AWS::EC2::KeyPair",
+            "Properties": {
+                "KeyName": "JumboxKeyPair"
+            }
+        },
+        "PrivateKeyPair": {
+            "Type": "AWS::EC2::KeyPair",
+            "Properties": {
+                "KeyName": "PrivateKeyPair"
+            }
+        },
+        "PublicKeyPair": {
+            "Type": "AWS::EC2::KeyPair",
+            "Properties": {
+                "KeyName": "PublicKeyPair"
+            }
+        },
+        "JumpboxInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-1a",
+                "SubnetId": {
+                    "Ref": "FridayHITTPublicSubnet"
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Fn::GetAtt": [
+                            "JumpboxSecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ],
+                "KeyName": {
+                    "Ref": "JumpboxKeyPair"
+                },
+                "ImageId": "ami-06b21ccaeff8cd686",
+                "InstanceType": "t2.micro",
+                "Tags": [
+                    {
+                        "Value": "JumpboxInstance",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        },
+        "PrivateInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-1a",
+                "SubnetId": {
+                    "Ref": "FridayHITTPrivateSubnet"
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Fn::GetAtt": [
+                            "PrivateSecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ],
+                "KeyName": {
+                    "Ref": "PrivateKeyPair"
+                },
+                "ImageId": "ami-06b21ccaeff8cd686",
+                "InstanceType": "t2.micro",
+                "Tags": [
+                    {
+                        "Value": "PrivateInstance",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        },
+        "PublicInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-1a",
+                "SubnetId": {
+                    "Ref": "FridayHITTPublicSubnet"
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Fn::GetAtt": [
+                            "PublicSecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ],
+                "KeyName": {
+                    "Ref": "PublicKeyPair"
+                },
+                "ImageId": "ami-06b21ccaeff8cd686",
+                "InstanceType": "t2.micro",
+                "Tags": [
+                    {
+                        "Value": "PublicInstance",
+                        "Key": "Name"
+                    }
+                ]
+            }
+        }
+    }
+}
